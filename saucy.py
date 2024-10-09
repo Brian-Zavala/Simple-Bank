@@ -17,7 +17,7 @@ def background_adjuster(img):
         [data-testid="stAppViewContainer"] {{
             background-image: url("{img}");
             background-size: cover;
-            background-repeat: no-repeat;
+            background-position: top 0px left -169px;           
             background-origin: border-box;
         }}
        </style>

@@ -1,10 +1,16 @@
+from time import strftime
+
+import pandas as pd
 import streamlit as st
 from saucy import load_lottie_url, background_adjuster
 import classes
 from database import create_tables
+import plotly.express as px
+
+st.set_page_config(page_title="Zavala National Bank", page_icon='💵')
 
 background_adjuster(
-    "https://images.pexels.com/photos/164501/pexels-photo-164501.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
+    "https://btlaw.com/-/media/images/btlaw/content/bank_detail.ashx?h=1280&w=1920&la=en&hash=6564CD61636F53C93F027AA615E78F5D")
 
 lottie_url = "https://lottie.host/8b171128-212d-481c-bac1-eabf6d59a748/N4QqT1mr0M.json"
 lottie_json = load_lottie_url(lottie_url)
@@ -16,8 +22,8 @@ def main():
     conn = classes.create_connection()
     create_tables(conn)
 
-    st.title("Zavala National Bank")
-
+    st.markdown("<h1 style='text-align: center; color: White;'>Zavala National Bank</h1>", unsafe_allow_html=True)
+    st.write('-' * 45)
     bank = classes.Bank()
 
     if st.session_state.current_user is None:
@@ -114,6 +120,37 @@ def main():
             st.subheader("Transaction History")
             df = bank.get_transaction_history()
             if not df.empty:
+                df['Date'] = pd.to_datetime(df['Date'])
+                df['Time'] = df['Date'].dt.strftime('%I:%M %p')
+                df['Cumulative Balance'] = df['Amount'].cumsum()
+                # Create hover text
+                df['Hover Text'] = df.apply(lambda row:
+                                            f"Date: {row['Date'].strftime('%d-%m-%Y %I%M%p')}<br>" +
+                                            f"Type: {row['Type']}<br>" +
+                                            f"Account: {row['Account']}<br>" +
+                                            f"Amount: ${row['Amount']:.2f}<br>" +
+                                            f"Balance: ${row['Cumulative Balance']:.2f}", axis=1)
+
+                fig = px.line(df, x='Time', y='Cumulative Balance',
+                              title='Account Balance Over Time',
+                              hover_data={'Date': False, 'Cumulative Balance': ':.2f'},
+                              custom_data=['Hover Text'])
+
+                fig.update_traces(
+                    hovertemplate="%{customdata[0]}<extra></extra>",
+                    line=dict(width=2),
+                    mode='lines+markers'
+                )
+
+                fig.update_layout(
+                    hoverlabel=dict(
+                        bgcolor="Black",
+                        font_size=12,
+                        font_family="Rockwell"
+                    )
+                )
+                st.plotly_chart(fig, use_container_width=True, theme='streamlit')
+                st.write('Transaction History')
                 st.dataframe(df)
             else:
                 st.write("No transactions yet.")
