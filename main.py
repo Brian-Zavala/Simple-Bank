@@ -1,9 +1,12 @@
 import pandas as pd
 import streamlit as st
+from streamlit import session_state, selectbox
+
 from saucy import load_lottie_url, background_adjuster
 import classes
 from database import create_tables
 import plotly.express as px
+import time
 
 st.set_page_config(page_title="Simple Bank", page_icon='💵')
 
@@ -20,7 +23,7 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 background_adjuster(
-    "https://btlaw.com/-/media/images/btlaw/content/bank_detail.ashx?h=1280&w=1920&la=en&hash=6564CD61636F53C93F027AA615E78F5D")
+    "https://imgs.search.brave.com/gGfDLud3KIWbUBKkjag_wMvE3F9NsoyaUpd3BUT2mdA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jMS53/YWxscGFwZXJmbGFy/ZS5jb20vcHJldmll/dy83MjUvNDIzLzcw/Ni9za3ktYmx1ZS1i/bHVlLXNreS1iYWNr/Z3JvdW5kLmpwZw")
 
 lottie_url = "https://lottie.host/8b171128-212d-481c-bac1-eabf6d59a748/N4QqT1mr0M.json"
 lottie_json = load_lottie_url(lottie_url)
@@ -35,32 +38,56 @@ def main():
     st.markdown("<h1 style='text-align: center; color: White;'>Simple Bank</h1>", unsafe_allow_html=True)
     st.write('-' * 45)
     bank = classes.Bank()
+    # Initialize session state variables
+    if 'page' not in st.session_state:
+        st.session_state.page = 'login'
+    if 'registration_success' not in st.session_state:
+        st.session_state.registration_success = False
+
+    def switch_page():
+        if st.session_state.page == 'login':
+            st.session_state.page = 'register'
+        else:
+            st.session_state.page = 'login'
+        st.session_state.registration_success = False
 
     if st.session_state.current_user is None:
         st.sidebar.title("Login / Register")
-        action = st.sidebar.selectbox("Choose an action", ("Login", "Register"))
 
-        if action == "Login":
-            username = st.sidebar.text_input("Username")
-            password = st.sidebar.text_input("Password", type="password")
+        # Use radio buttons to switch between Login and Register
+        action = st.sidebar.radio(
+            "Choose an action",
+            ("Login", "Register"),
+            key="action_radio",
+            on_change=switch_page,
+            index=0 if st.session_state.page == 'login' else 1
+        )
+
+        if st.session_state.page == 'login':
+            username = st.sidebar.text_input("Username", key="login_username")
+            password = st.sidebar.text_input("Password", type="password", key="login_password")
             if st.sidebar.button("Login"):
                 if bank.login(username, password):
                     st.success("Logged in successfully!")
                     st.rerun()
                 else:
                     st.error("Invalid username or password")
-
-        elif action == "Register":
-            username = st.sidebar.text_input("Choose a username")
-            password = st.sidebar.text_input("Choose a password", type="password")
-            email = st.sidebar.text_input("Email")
-            phone = st.sidebar.text_input("Phone number")
+        else:  # Register page
+            username = st.sidebar.text_input("Choose a username", key="reg_username")
+            password = st.sidebar.text_input("Choose a password", type="password", key="reg_password")
+            email = st.sidebar.text_input("Email", key="reg_email")
+            phone = st.sidebar.text_input("Phone number", key="reg_phone")
             if st.sidebar.button("Register"):
                 if bank.create_user(username, password, email, phone):
-                    st.success("User registered successfully! You can now log in.")
+                    st.session_state.registration_success = True
+                    st.session_state.page = 'login'
+                    st.rerun()
                 else:
                     st.error("Registration failed. Please check your information and try again.")
 
+        # Display success message if registration was successful
+        if st.session_state.registration_success:
+            st.sidebar.success("User registered successfully! You can now log in.")
     else:
         st.sidebar.title(f"Welcome, {st.session_state.current_user.username}!")
         if st.sidebar.button("Logout"):
@@ -74,11 +101,11 @@ def main():
         )
 
         if operation == "View Profile":
-            st.subheader("Your Profile")
+            st.title("Your Profile")
             profile = bank.get_user_profile()
-            st.write(f"Username: {profile['username']}")
-            st.write(f"Email: {profile['email'] or 'Not set'}")
-            st.write(f"Phone: {profile['phone'] or 'Not set'}")
+            st.subheader(f"Username: {profile['username']}")
+            st.subheader(f"Email: {profile['email'] or 'Not set'}")
+            st.subheader(f"Phone: {profile['phone'] or 'Not set'}")
 
         elif operation == "View Beneficiaries":
             st.subheader("Your Beneficiaries")

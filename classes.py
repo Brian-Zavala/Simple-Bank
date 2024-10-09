@@ -25,7 +25,7 @@ class Bank:
         self.conn = create_connection()
         if 'current_user' not in st.session_state:
             st.session_state.current_user = None
-        self.transaction_limit = 1000  # Daily transaction limit
+        self.transaction_limit = 2500  # Daily transaction limit
 
     def create_user(self, username, password, email, phone):
         if get_user(self.conn, username):
@@ -42,15 +42,14 @@ class Bank:
         if user_data:
             stored_password_hash = user_data[2]
             if self.verify_password(password, stored_password_hash):
-                # Create User object with available data, using default values if not present
                 st.session_state.current_user = User(
                     username=username,
                     password_hash=stored_password_hash,
-                    user_id=user_data[0] if len(user_data) > 0 else None,
-                    checking_balance=user_data[3] if len(user_data) > 3 else 0,
-                    savings_balance=user_data[4] if len(user_data) > 4 else 0,
-                    email=user_data[5] if len(user_data) > 5 else None,
-                    phone=user_data[6] if len(user_data) > 6 else None
+                    user_id=user_data[0],
+                    checking_balance=user_data[3],
+                    savings_balance=user_data[4],
+                    email=user_data[5],
+                    phone=user_data[6]
                 )
                 return True
         return False
@@ -82,30 +81,34 @@ class Bank:
             st.error("Invalid Amount. Please enter a positive number.")
 
     def withdraw(self, account_type, amount):
-        if amount > 0:
-            if self.check_transaction_limit(amount):
-                if account_type == "Checking":
-                    if st.session_state.current_user.checking_balance >= amount:
-                        new_balance = st.session_state.current_user.checking_balance - amount
-                        st.session_state.current_user.checking_balance = new_balance
-                        update_balance(self.conn, st.session_state.current_user.user_id, account_type, new_balance)
-                        self.add_transaction("Withdrawal", account_type, -amount)
-                        return new_balance
-                    else:
-                        st.error("Insufficient funds in Checking account.")
-                elif account_type == "Savings":
-                    if st.session_state.current_user.savings_balance >= amount:
-                        new_balance = st.session_state.current_user.savings_balance - amount
-                        update_balance(self.conn, st.session_state.current_user.user_id, account_type, new_balance)
-                        st.session_state.current_user.savings_balance = new_balance
-                        self.add_transaction("Withdrawal", account_type, -amount)
-                        return new_balance
-                    else:
-                        st.error("Insufficient funds in Savings account.")
-            else:
-                st.error(f"Transaction exceeds daily limit of ${self.transaction_limit}.")
-        else:
+        if amount <= 0:
             st.error("Invalid Amount. Please enter a positive number.")
+            return None
+
+        if not self.check_transaction_limit(amount):
+            st.error(f"Transaction exceeds daily limit of ${self.transaction_limit}.")
+            return None
+
+        account_balance = (st.session_state.current_user.checking_balance
+                           if account_type == "Checking"
+                           else st.session_state.current_user.savings_balance)
+
+        if account_balance < amount:
+            st.error(f"Insufficient funds in {account_type} account.")
+            return None
+
+        new_balance = account_balance - amount
+
+        # Update the balance in the session state and database
+        if account_type == "Checking":
+            st.session_state.current_user.checking_balance = new_balance
+        else:
+            st.session_state.current_user.savings_balance = new_balance
+
+        update_balance(self.conn, st.session_state.current_user.user_id, account_type, new_balance)
+        self.add_transaction("Withdrawal", account_type, -amount)
+
+        return new_balance
 
     def add_transaction(self, transaction_type, account_type, amount):
         transaction = {
@@ -187,7 +190,7 @@ class Bank:
 
     @staticmethod
     def validate_phone(phone):
-        pattern = r'^\+?1?\d{9,15}$'
+        pattern = r'^\+?1?[-\d]{9,15}$'
         return re.match(pattern, phone) is not None
 
     def check_transaction_limit(self, amount):

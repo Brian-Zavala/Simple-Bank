@@ -49,9 +49,11 @@ def create_tables(conn):
     conn.commit()
 
 def add_user(conn, user):
-    cur = conn.cursor()
-    cur.execute("INSERT INTO users (user_id, username, password_hash) VALUES (?,?,?)",
-                (user.user_id, user.username, user.password_hash))
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO users (user_id, username, password_hash, checking_balance, savings_balance, email, phone)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (user.user_id, user.username, user.password_hash, user.checking_balance, user.savings_balance, user.email, user.phone))
     conn.commit()
 
 def get_user(conn, username):
