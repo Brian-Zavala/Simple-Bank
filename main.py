@@ -78,12 +78,13 @@ def main():
             email = st.sidebar.text_input("Email", key="reg_email")
             phone = st.sidebar.text_input("Phone number", key="reg_phone")
             if st.sidebar.button("Register"):
-                if bank.create_user(username, password, email, phone):
-                    st.session_state.registration_success = True
-                    st.session_state.page = 'login'
-                    st.rerun()
-                else:
-                    st.error("Registration failed. Please check your information and try again.")
+                with st.sidebar:
+                    if bank.create_user(username, password, email, phone):
+                        st.session_state.registration_success = True
+                        st.session_state.page = 'login'
+                        st.rerun()
+                    else:
+                        st.error("Registration failed. Please check your information and try again.")
 
         # Display success message if registration was successful
         if st.session_state.registration_success:
