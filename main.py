@@ -5,11 +5,12 @@ import classes
 from database import create_tables
 import plotly.express as px
 
-st.set_page_config(page_title="Zavala National Bank", page_icon='💵')
+st.set_page_config(page_title="Simple Bank", page_icon='💵')
 
 hide_streamlit_style = """
             <style>
                 /* Hide the Streamlit header and menu */
+                header {visibility: hidden;}
                 /* Optionally, hide the footer */
                 .streamlit-footer {display: none;}
                 /* Hide your specific div class, replace class name with the one you identified */
@@ -31,7 +32,7 @@ def main():
     conn = classes.create_connection()
     create_tables(conn)
 
-    st.markdown("<h1 style='text-align: center; color: White;'>Zavala National Bank</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: White;'>Simple Bank</h1>", unsafe_allow_html=True)
     st.write('-' * 45)
     bank = classes.Bank()
 
