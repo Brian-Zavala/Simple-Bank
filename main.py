@@ -1,5 +1,3 @@
-from time import strftime
-
 import pandas as pd
 import streamlit as st
 from saucy import load_lottie_url, background_adjuster
@@ -8,6 +6,18 @@ from database import create_tables
 import plotly.express as px
 
 st.set_page_config(page_title="Zavala National Bank", page_icon='💵')
+
+hide_streamlit_style = """
+            <style>
+                /* Hide the Streamlit header and menu */
+                header {visibility: hidden;}
+                /* Optionally, hide the footer */
+                .streamlit-footer {display: none;}
+                /* Hide your specific div class, replace class name with the one you identified */
+                .st-emotion-cache-uf99v8 {display: none;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 background_adjuster(
     "https://btlaw.com/-/media/images/btlaw/content/bank_detail.ashx?h=1280&w=1920&la=en&hash=6564CD61636F53C93F027AA615E78F5D")
